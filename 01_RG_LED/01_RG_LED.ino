@@ -4,7 +4,7 @@ MeRGBLed led(0, 30);
 
 void setup()
 {
-  led.setpin(13);
+  led.setpin(LED_BUILTIN); // As in Arduino UNO, corresponds to pin 13
 }
 
 void loop()

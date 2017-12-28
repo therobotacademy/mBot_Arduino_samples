@@ -10,13 +10,17 @@ void setup()
 
 void loop()
 {
+  delay(200); // To avoid repeated pushes
     if(ir.decode())
     {
       uint32_t value = ir.value;
-      Serial.print("Raw Value: ");
-      Serial.println(value);
+      Serial.print("\n");
+      Serial.print("Raw Value HEX: ");
+      Serial.println(value,HEX);
       value = value >> 16 & 0xff;
-      Serial.print("Button Code: ");
+      Serial.print("Masked Value HEX: ");
+      Serial.println(value,HEX);
+      Serial.print("Button Code DEC: ");
       Serial.println(value);
       Serial.print("Button: ");
        switch(value)
