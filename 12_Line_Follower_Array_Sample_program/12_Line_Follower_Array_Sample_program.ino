@@ -1,5 +1,5 @@
 
-const int DataPin = 12;
+const int DataPin = 12; // Mandatory to use digital pin 12 if connected to PORT1. For PORT2, use D10
 uint8_t Sensor_Data[3];
 
 void setup() 
