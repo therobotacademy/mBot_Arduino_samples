@@ -1,0 +1,56 @@
+// From http://forum.makeblock.com/t/line-following-with-multiple-sensors/3529
+
+#include "MeOrion.h"
+MeDCMotor motor1(M1);
+MeDCMotor motor2(M2);
+int LSpeed = 0;
+int RSpeed = 0;
+int Speed = 105;
+int l1=1;
+int l2=1;
+int l3=1;
+int l4=1;
+int l5=1;
+int l6=1;
+int left=100;
+int right=100;
+int diff=0;
+int pdiff=0;
+int sum=0;
+
+void setup()
+{
+  Serial.begin(9600);
+}
+
+void loop()
+{
+   l1=digitalRead(12);
+   l2=digitalRead(13);
+   l3=digitalRead(8);
+   l4=digitalRead(2);
+   l5=digitalRead(A2);
+   l6=digitalRead(A3);
+   sum=l1+l2+l3+l4+l5+l6;
+   left=65*l1+25*l2+1*l3;
+   right=65*l6+25*l5+1*l4;
+
+   if  (sum == 6 ) {
+      diff = pdiff;
+   } else {
+   diff=right-left;
+   pdiff=diff;
+   }
+   
+   RSpeed=Speed+diff;
+   LSpeed=Speed-diff;
+   
+   
+  
+  Serial.print(pdiff);Serial.print("__");Serial.print(sum);Serial.print("_left:_");Serial.print(LSpeed);Serial.print("_right:_");Serial.println(RSpeed);
+
+  motor1.run(RSpeed);
+  motor2.run(LSpeed);
+ 
+  delay(20);
+  }

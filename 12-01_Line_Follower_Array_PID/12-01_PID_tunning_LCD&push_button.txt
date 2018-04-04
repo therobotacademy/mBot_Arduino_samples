@@ -1,0 +1,93 @@
+// From document:
+//	"Building Autonomous Line Followers using Arduino and PID.pdf"
+
+void setup()  {
+	lcd.begin(16, 2); // Set cursor to the bottom line of the LCD display
+	lcd.print("WHADDUP???");
+	delay(3000);
+	// Setup input pushbutton pins
+	pinMode(select_switch,INPUT); // replace the first parameters by the pins you’re using
+	pinMode(up_switch,INPUT);
+	pinMode(down_switch,INPUT);
+	push_button_set(); // calling the function to set values of constants
+}
+void loop()
+{
+	if (start==true) // start is a flag which is set on completion of input
+		{
+		sensors_read(); //Reads sensor values and computes sensor sum and weighted average
+		pid_calc(); //Calculates position[set point] and computes Kp,Ki and Kd
+		calc_turn(); //Computes the error to be corrected
+		motor_drive(right_speed, left_speed);
+		}
+	else
+		motor_drive(0,0);
+
+	float set( float a)
+	delay(100);
+	lcd.setCursor(0,1);
+	lcd.print(a);
+	while(digitalRead(select_switch)==LOW) //LCD print KI or KP or KD on one line
+		//dependant on select_count and display current value
+		{
+		delay(100);
+		if(digitalRead(up_switch)==HIGH) //If the button has been pressed
+			{
+			delay(100);
+			a*=10; // increment by .1 you can change this if you need to.
+			a++;
+			a/=10;
+			lcd.setCursor(0,1);
+			lcd.print(a);
+			}
+		if(digitalRead(down_switch)==HIGH)
+			{
+			delay(100);
+			a*=10;
+			a--;
+			a/=10;
+			lcd.setCursor(0,1);
+			lcd.print(a);
+			}
+		delay(70);// Delay to prevent debounce
+		}
+	delay(100);
+	return(a);
+	}
+	
+	
+voidpush_button_set() //This is for changing the values of Ki,kp and kd
+	{
+	++select_count;
+	if (select_count==1)
+		{
+		lcd.clear();
+		lcd.print("Set Kp - ");
+		Kp=set(Kp);
+		++select_count;
+		}
+	delay(100);
+	if(select_count==2)
+		{
+		lcd.clear();
+		lcd.print("Set Ki - ");
+		Ki=set(Ki);
+		++select_count;
+		}
+	delay(100);
+	if(select_count==3)
+		{
+		lcd.clear();
+		lcd.print("Set Kd - ");
+		Kd=set(Kd);
+		++select_count;
+		}
+	delay(100);
+	if(select_count>3)
+		{
+		start=true;
+		lcd.clear();
+		lcd.print("BRING IT ON!!!");
+		delay(3000);
+		}//LCD write push start button to start
+	}
