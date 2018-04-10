@@ -1,4 +1,6 @@
 #include <MeMCore.h>
+#define ON_BOARD_BUTTON A7
+#define READ_THRESHOLD 100
 
 void setup()
 {
@@ -9,7 +11,7 @@ boolean currentPressed = false;
 boolean pre_buttonPressed = false;
 
 void loop() {
-  currentPressed = (analogRead(7) < 100);
+  currentPressed = (analogRead(ON_BOARD_BUTTON) < READ_THRESHOLD);
   if (currentPressed != pre_buttonPressed)
   {
     pre_buttonPressed = currentPressed;
