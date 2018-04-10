@@ -14,6 +14,10 @@ MeDCMotor motor1(M1); //Motor1 is Left Motor
 MeDCMotor motor2(M2); //Motor2 is Left Motor
 MeRGBLed led(0, 30);
 
+int LineFollowFlag=0;  // Integral part of PI control loop
+int moveSpeed = 255*0.5; // Velocidad de referencia //230 in ref Program
+int moveSpeedTurn = 255; // Velocidad de referencia //230 in ref Program
+
 void setup() {
   led.setpin(RGB_LEDS);
   led.setColorAt(1, 255, 255, 255); //Set LED1 (RGBLED2) (LeftSide)
@@ -59,47 +63,77 @@ void loop() {
   }
   else   // Else follow line
   {  
+  Serial.println(LineFollowFlag);
   int sensorState = lineFinder.readSensors();
   switch (sensorState)
   {
     case S1_IN_S2_IN:
-      motor1.run(MOTOR1_TUNE * 255.0*0.5); //Left motor Run. Half of maximum speed to avoid both sensor out
-      motor2.run(MOTOR2_TUNE * 255.0*0.5); //Right motor Run
+      motor1.run(MOTOR1_TUNE * moveSpeed); //230 in ref Program. Left motor Run. Half of maximum speed to avoid both sensor out
+      motor2.run(MOTOR2_TUNE * moveSpeed); //Right motor Run
+      LineFollowFlag=10; // ------------------------------------------- RESETS THE INTEGRAL PART
+      
       led.setColorAt(1, 0, 255, 0); //Set LED1 (RGBLED2) (LeftSide)
       led.setColorAt(0, 0, 255, 0); //Set LED0 (RGBLED1) (RightSide)
       led.show();
       break;
     case S1_IN_S2_OUT:
-      //turn left
+      /*turn LEFT
       motor1.run(MOTOR1_TUNE * 0);      //Left motor Stop
-      motor2.run(MOTOR2_TUNE * 255.0);  //Right motor Run
+      */
+      // Case of PI control: go FORWARD
+      motor1.run(MOTOR1_TUNE * moveSpeed);
+      motor2.run(MOTOR2_TUNE * moveSpeed);  //Right motor Run
+      if (LineFollowFlag>1) LineFollowFlag--; // ---------------- DECREASE on RIGHT SIDE of line
+            
       led.setColorAt(1, 0, 255, 0);   //Set LED1 (RGBLED2) (LeftSide)
       led.setColorAt(0, 255, 0, 0); //Set LED0 (RGBLED1) (RightSide)
       led.show();
       turning_left = true;
       break;
     case S1_OUT_S2_IN:
-      //turn right
-      motor1.run(MOTOR1_TUNE * 255.0);  //Left motor Run
+      /*turn RIGHT
       motor2.run(MOTOR2_TUNE * 0);      //Right motor Stop
+      */
+      // Case of PI control: go FORWARD
+      motor1.run(MOTOR1_TUNE * moveSpeed);  //Left motor Run
+      motor2.run(MOTOR2_TUNE * moveSpeed);
+      if (LineFollowFlag<20) LineFollowFlag++; // ---------------- INCREASE on LEFT SIDE of line
+
       led.setColorAt(1, 255, 0, 0); //Set LED1 (RGBLED2) (LeftSide)
       led.setColorAt(0, 0, 255, 0);   //Set LED0 (RGBLED1) (RightSide)
       led.show();
       turning_left = false;
       break;
     case S1_OUT_S2_OUT:
-    
-      //keep turning what it was turning
+        if(LineFollowFlag==10){
+          //Backward();
+          motor1.run(-MOTOR1_TUNE * moveSpeed);
+          motor2.run(-MOTOR2_TUNE * moveSpeed);
+          }
+        if(LineFollowFlag<10){
+          //TurnLeft();
+          motor1.run(MOTOR1_TUNE * moveSpeedTurn/10);
+          motor2.run(MOTOR2_TUNE * moveSpeedTurn);
+          }
+        if(LineFollowFlag>10){
+          //TurnRight();
+          motor1.run(MOTOR1_TUNE * moveSpeedTurn);
+          motor2.run(MOTOR2_TUNE * moveSpeedTurn/10);
+          }
+
         led.setColorAt(1, 255, 0, 0);   //Set LED1 (RGBLED2) (LeftSide)
         led.setColorAt(0, 255, 0, 0); //Set LED0 (RGBLED1) (RightSide)
         led.show();
+
+      // THE SILLY BEHAVIOR
+      /* keep turning what it was turning
       if (turning_left) {
         motor1.run(MOTOR1_TUNE * 0);      //Left motor Stop
         motor2.run(MOTOR2_TUNE * 255.0);  //Right motor Run
       } else {
         motor1.run(MOTOR1_TUNE * 255.0);  //Left motor Run
         motor2.run(MOTOR2_TUNE * 0);      //Right motor Stop
-      }
+      }*/
       break;
     default: break;
   } // End of 'switch' statement

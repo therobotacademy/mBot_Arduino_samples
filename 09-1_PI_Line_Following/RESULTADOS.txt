@@ -1,0 +1,6 @@
+Circuito papel mBot: forward at movSpeed = 255/2
+-------------------
+1 vuelta con PI 			21 s (turn at movSpeed = 255/2
+1 vuelta con PI 			21 s (turn at moveSpeedTurn= 255)
+
+1 vuelta con BASIC 		14 s (turn at 255)
