@@ -1,4 +1,10 @@
-/*State-Diagram: SWITCHING BETWEEN CONTROL ALGORITHMS
+/* case S1_OUT_S2_OUT:       // if 10 backward, <10 turn left, >10 turn right
+        if(LineFollowFlag==10){
+          //Backward(); // if defined inside a function
+          motor1.run(-SIG1 * moveSpeed); //-----> Malfunctioning possibly due to delay(200) in 'function onBoardButton_tick'
+*/
+
+/*State-Diagram: SWITCHING BETWEEN CONTROL ALGORYTHMS
     start
       |                   +-------\
       V                   V       |    
@@ -33,12 +39,23 @@ States;
 States nextState = _OFF; // Robot stopped when starting
 
 // ----- On board button definitions ----------------------------------------
-#include "OneButton.h"
 #define RGB_LEDS 13
 #define ON_BOARD_BUTTON A7
+#define READ_THRESHOLD 100
 // -----------------------
 // Setup a new OneButton on pin A7  
-OneButton button(ON_BOARD_BUTTON, true);
+boolean currentPressed = false;
+boolean pre_buttonPressed = false;
+unsigned int button_read = 1023;  // Starting value is "released" = HIGH (as opposite to "pressed"  LOW)
+
+boolean onBoardButton_tick(int _pin) {
+  unsigned int button_read = analogRead(_pin); // current button signal
+  int buttonLevel;
+  if (button_read > READ_THRESHOLD)   buttonLevel = LOW;
+  else                                buttonLevel = HIGH;
+  delay(200); // To avoid several ticks
+  return(buttonLevel); 
+}
 
 // Makeblock definitions -----------------------------------------------------
 #include <MeMCore.h>
@@ -60,38 +77,37 @@ void setup() {
   led.setColorAt(1, 50, 50, 50); //Set LED1 (RGBLED2) (LeftSide)
   led.setColorAt(0, 50, 50, 50); //Set LED0 (RGBLED1) (RightSide)
   led.show();
-
-  /////// OneButton callback functions
-  // link the myClickFunction function to be called on a click event.   
-  button.attachClick(myClickFunction);
-  // link the doubleclick function to be called on a doubleclick event.   
-  button.attachDoubleClick(myDoubleClickFunction);
-  // link the myPressFunction function to be called on a long press event.   
-  button.attachPress(myPressFunction);
   
-  // set 80 msec. debouncing time. Default is 50 msec.
-  button.setDebounceTicks(20);
-  // set msec. before a click is detected. Default is 600 msec.
-  button.setClickTicks(600);
-  // set msec. before a click is detected. Default is 1000 msec.
-  button.setPressTicks(1000);
-  
+  pinMode(ON_BOARD_BUTTON, INPUT); //Define button pin as input
   Serial.begin(9600);
   Serial.println("Press BUTTON to start"); /////////////////////////////////// SERIAL MONITOR
-  buzzer.tone(200, 200);   //Buzzer beep to indicate _OFF state
+  while (button_read > 100) {
+    delay(50); //Wait till button pressed to start
+    button_read = analogRead(ON_BOARD_BUTTON);
+  }
+  buzzer.tone(200, 200);   //Buzzer beep to indicate start
+  nextState = _ON;
 }
 /******************* LOOP ********************************************************************************/
 void loop() {
   // -------- Check for press / click on board button ----------
-  button.tick();  // From OneButton library
-  
-  // --------------------- MAKE TRANSITION (OneButton library) ---------------------
-  // Logic is inside TRANSITION FUNCTIONS, that will be called from next switch statement
+
+  // keep watching the push button:
+  // ----------------- Version with native On Board Button code of Makeblock ---------------------
+  int buttonLevel = onBoardButton_tick(ON_BOARD_BUTTON);
+  Serial.print("BUTTON pin   ="); Serial.println(ON_BOARD_BUTTON); //////////////// SERIAL MONITOR
+  Serial.print("BUTTON level ="); Serial.println(buttonLevel); //////////////////// SERIAL MONITOR
+  if (buttonLevel) {
+    if      (nextState == _OFF)   nextState = _ON;
+    else if (nextState == _ON)    nextState = _BASIC;
+    else if (nextState == _BASIC) nextState = _PI;
+    else if (nextState == _PI)    nextState = _ON;
+  }
   
   // ---- EXECUTE THE TASK OF THE SWITCHED STATE ---------------
   int sensorState = lineFinder.readSensors();
-
- switch (nextState) {
+  
+  switch (nextState) {
     case _OFF:
       // Stop the robot
       Serial.println("_OFF state' mBot stopping"); /////////////////////////////////// SERIAL MONITOR
@@ -106,30 +122,29 @@ void loop() {
       // Start (or re-start) the robot
       motor1.run(SIG1 * 0);  //Left motor Stop
       motor2.run(SIG2 * 0);  //Right motor Stop
-      Serial.println("'_ON state' mBot ready to go"); ///////////////////////////////// SERIAL MONITOR
-      led.setColorAt(1, 0, 0, 255); //Set LED1 (RGBLED2) (LeftSide)
-      led.setColorAt(0, 0, 0, 255); //Set LED0 (RGBLED1) (RightSide)
+      Serial.println("'_ON state' mBot ready to go"); ///////////////////////////////////// SERIAL MONITOR
+      led.setColorAt(1, 255, 255, 255); //Set LED1 (RGBLED2) (LeftSide)
+      led.setColorAt(0, 255, 255, 255); //Set LED0 (RGBLED1) (RightSide)
       led.show();
       break;
 
     case _BASIC:
-    Serial.println("_BASIC state' Using basic line following algorithm"); ///////////// SERIAL MONITOR
-      // Basic line following algorithm
+    Serial.println("_BASIC state' Using basic line following algorythm"); /////////////////////////////////// SERIAL MONITOR
+      // Basic line following algorythm
       FollowLineBasic (sensorState);
       break;
 
     case _PI:
-    Serial.println("_PI state' Using PI line following algorithm"); /////////////////// SERIAL MONITOR
-      // PI line following algorithm
+    Serial.println("_PI state' Using PI line following algorythm"); /////////////////////////////////// SERIAL MONITOR
+      // PI line following algorythm
       FollowLinePI (sensorState);
       break;
       
     default: break; }
-  
   } // End of loop()
 /***************************************************************************************************/
 
-//////// FUNCTION FOR CONTROL LOOP algorithm: Basic *************************
+//////// FUNCTION FOR CONTROL LOOP ALGORYTHM: Basic *************************
   void FollowLineBasic (int sensorState) {
     static float turning_left = true;
     
@@ -178,7 +193,7 @@ void loop() {
   
   } // End of function FollowLineBasic
 
-  //////// FUNCTION FOR CONTROL LOOP algorithm: PI *************************
+  //////// FUNCTION FOR CONTROL LOOP ALGORYTHM: PI *************************
   void FollowLinePI (int sensorState) {
     static int LineFollowFlag=0;  // Integral part of PI control loop
     
@@ -234,33 +249,4 @@ void loop() {
       default: break; } // End of 'switch' statement
   
   } // End of function FollowLinePI
-
-// TRANSITION FUNCTIONS ----------------------------------------------
-// On LONG PRESS: empty function, not used
-void myPressFunction() {
-  // Nothing to do  
-}
-
-// On SINGLE CLICK: this function will be called when the button was pressed 1 time and them some time has passed.
-void myClickFunction() {
-  if (nextState == _OFF) {
-    nextState = _ON;
-  }
-  else
-    nextState = _OFF;
-  }
-
-// On DOUBLE CLICK: this function will be called when the button was pressed 2 times in a short timeframe.
-void myDoubleClickFunction() {
-  
-  if (nextState == _ON) {
-    nextState = _BASIC;
-
-  } else if (nextState == _BASIC) {
-    nextState = _PI;
-
-  } else if (nextState == _PI) {
-    nextState = _ON;
-  } // if
-}
 
